@@ -1,1 +1,1 @@
-# Scripting Language Programming Assignment 1 #
+# Scripting Language Programming Assignment 1
