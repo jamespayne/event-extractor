@@ -20,8 +20,8 @@ if (!$ARGV[0] || @ARGV > 1) {
 
 # Check the file name argument has a .json extension.
 
-if ($ARGV[0] =~ /\.json$/) {
-  print "Valid .json file submitted.\n";
+if ($ARGV[0] =~ /\.json$/i) {
+  print "Valid .json file submitted. Thank you.\n";
 } else {
   print "That doesn't appear to be a valid .json file.\n";
   exit;
