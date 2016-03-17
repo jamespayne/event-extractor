@@ -26,3 +26,21 @@ if ($ARGV[0] =~ /\.json$/i) {
   print "That doesn't appear to be a valid .json file.\n";
   exit;
 }
+
+# Create a new filehandler and open the file given as input.
+
+open (my $fh, $ARGV[0]) || die "Error in opening the file";
+
+my @content = ();
+
+while (<$fh>) {
+  if ($_ =~ /content/) {
+    push @content, ($_);
+  }
+}
+
+close($fh);
+
+foreach my $item (@content) {
+  print $item;
+}
