@@ -33,14 +33,63 @@ open (my $fh, $ARGV[0]) || die "Error in opening the file";
 
 my @content = ();
 
+# Remove any newlines, horizontal whitespace and push it into an array.
+
 while (<$fh>) {
-  if ($_ =~ /content/) {
-    push @content, ($_);
-  }
+  chomp $_;
+  $_ =~ s/\h+/ /g;
+  push(@content, $_);
 }
+
+# Close the file immediately. Keep it clean!
 
 close($fh);
 
-foreach my $item (@content) {
+# Extract the data and convert it to an array of hashes.
+
+my @data = ();
+
+foreach my $item(@content){
+  if ($item =~ /sent/) {
+    $item =~ s/: / => /g;
+    push (@data, "{".$item);
+  }
+  if ($item =~ /timeZone/) {
+    $item =~ s/: / => /g;
+    push (@data,$item);
+  }
+  if ($item =~ /content/) {
+    $item =~ s/: / => /g;
+    push (@data,$item."},");
+  }
+}
+
+# Debug Area
+
+# print @data;
+
+# Test to see if data can be extracted and formatted
+
+foreach my $item(@data) {
   print $item;
 }
+
+# Start POD
+
+=pod
+
+=head1 NAME
+
+eventextractor.pm - Perl script to extract events from emails.
+
+=head1 SYNOPSIS
+
+=over 4
+
+= item(1)
+
+eventextractor [options] [inputfile]
+
+=back
+
+=cut
