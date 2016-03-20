@@ -31,48 +31,58 @@ if ($ARGV[0] =~ /\.json$/i) {
 
 open (my $fh, $ARGV[0]) || die "Error in opening the file";
 
-my @content = ();
+my @data = ();
+my $dataSize = 1;
 
 # Remove any newlines, horizontal whitespace and push it into an array.
 
 while (<$fh>) {
-  chomp $_;
-  $_ =~ s/\h+/ /g;
-  push(@content, $_);
+  if($_ =~ /sent/){
+    my ($year, $month, $day, $hours, $minutes, $seconds, $tzd) = $_ =~ /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}).(\d{2,4}Z)/;
+    $data[$dataSize]{'year'} = $year;
+    $data[$dataSize]{'month'} = $month;
+    $data[$dataSize]{'day'} = $day;
+    $data[$dataSize]{'hours'} = $hours;
+    $data[$dataSize]{'minutes'} = $minutes;
+    $data[$dataSize]{'seconds'} = $seconds;
+    $data[$dataSize]{'tzd'} = $tzd;
+  }
+  if($_ =~ /timeZone/){
+    my ($timeZone) = $_ =~ /(\w*\/\w*)/;
+    $data[$dataSize]{'timeZone'} = $timeZone;
+  }
+  if($_ =~ /content/){
+    my ($content) = $_ =~ /"content": "(.*)"/;
+    $data[$dataSize]{'content'} = $1;
+    $dataSize++;
+  }
+
 }
 
 # Close the file immediately. Keep it clean!
 
 close($fh);
 
-# Extract the data and convert it to an array of hashes.
-
-my @data = ();
-
-foreach my $item(@content){
-  if ($item =~ /sent/) {
-    $item =~ s/: / => /g;
-    push (@data, "{".$item);
-  }
-  if ($item =~ /timeZone/) {
-    $item =~ s/: / => /g;
-    push (@data,$item);
-  }
-  if ($item =~ /content/) {
-    $item =~ s/: / => /g;
-    push (@data,$item."},");
-  }
-}
-
 # Debug Area
-
-# print @data;
+for my $i ( 0 .. $#data ) {
+  print "{\n";
+  print "   Year: ".$data[$i]{'year'}."\n";
+  print "   Month: ".$data[$i]{'month'}."\n";
+  print "   Day: ".$data[$i]{'day'}."\n";
+  print "   Hours: ".$data[$i]{'hours'}."\n";
+  print "   Minute: ".$data[$i]{'minutes'}."\n";
+  print "   Second: ".$data[$i]{'seconds'}."\n";
+  print "   TZD: ".$data[$i]{'tzd'}."\n";
+  print "   Timezone: ".$data[$i]{'timeZone'}."\n" if defined $data[$i]{'timeZone'};
+  print "   Content: ".$data[$i]{'content'}."\n";
+  print "\n}\n";
+}
 
 # Test to see if data can be extracted and formatted
 
-foreach my $item(@data) {
-  print $item;
-}
+# foreach my $item(@data) {
+#   print $item;
+# }
 
 # Start POD
 
