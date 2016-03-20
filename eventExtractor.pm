@@ -64,7 +64,7 @@ while (<$fh>) {
 close($fh);
 
 # Debug Area
-for my $i ( 0 .. $#data ) {
+for my $i ( 1 .. $#data ) {
   print "{\n";
   print "   Year: ".$data[$i]{'year'}."\n";
   print "   Month: ".$data[$i]{'month'}."\n";
