@@ -31,30 +31,31 @@ if ($ARGV[0] =~ /\.json$/i) {
 
 open (my $fh, $ARGV[0]) || die "Error in opening the file";
 
-my @data = ();
-my $dataSize = 1;
+my @input = ();
+my $inputSize = 1;
+my @output = ();
 
 # Remove any newlines, horizontal whitespace and push it into an array.
 
 while (<$fh>) {
   if($_ =~ /sent/){
     my ($year, $month, $day, $hours, $minutes, $seconds, $tzd) = $_ =~ /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}).(\d{2,4}Z)/;
-    $data[$dataSize]{'year'} = $year;
-    $data[$dataSize]{'month'} = $month;
-    $data[$dataSize]{'day'} = $day;
-    $data[$dataSize]{'hours'} = $hours;
-    $data[$dataSize]{'minutes'} = $minutes;
-    $data[$dataSize]{'seconds'} = $seconds;
-    $data[$dataSize]{'tzd'} = $tzd;
+    $input[$inputSize]{'year'} = $year;
+    $input[$inputSize]{'month'} = $month;
+    $input[$inputSize]{'day'} = $day;
+    $input[$inputSize]{'hours'} = $hours;
+    $input[$inputSize]{'minutes'} = $minutes;
+    $input[$inputSize]{'seconds'} = $seconds;
+    $input[$inputSize]{'tzd'} = $tzd;
   }
   if($_ =~ /timeZone/){
     my ($timeZone) = $_ =~ /(\w*\/\w*)/;
-    $data[$dataSize]{'timeZone'} = $timeZone;
+    $input[$inputSize]{'timeZone'} = $timeZone;
   }
   if($_ =~ /content/){
     my ($content) = $_ =~ /"content": "(.*)"/;
-    $data[$dataSize]{'content'} = $1;
-    $dataSize++;
+    $input[$inputSize]{'content'} = $1;
+    $inputSize++;
   }
 
 }
@@ -63,24 +64,35 @@ while (<$fh>) {
 
 close($fh);
 
-# Debug Area
-for my $i ( 1 .. $#data ) {
-  print "{\n";
-  print "   Year: ".$data[$i]{'year'}."\n";
-  print "   Month: ".$data[$i]{'month'}."\n";
-  print "   Day: ".$data[$i]{'day'}."\n";
-  print "   Hours: ".$data[$i]{'hours'}."\n";
-  print "   Minute: ".$data[$i]{'minutes'}."\n";
-  print "   Second: ".$data[$i]{'seconds'}."\n";
-  print "   TZD: ".$data[$i]{'tzd'}."\n";
-  print "   Timezone: ".$data[$i]{'timeZone'}."\n" if defined $data[$i]{'timeZone'};
-  print "   Content: ".$data[$i]{'content'}."\n";
-  print "\n}\n";
+findEvent();
+
+sub findEvent {
+  for my $i ( 1 .. $#input ) {
+    if ($input[$i]{'content'} =~ /12/) {
+      print "Found event!";
+    }
+  }
 }
 
-# Test to see if data can be extracted and formatted
+# Debug Area
 
-# foreach my $item(@data) {
+# for my $i ( 1 .. $#input ) {
+#   print "{\n";
+#   print "   Year: ".$input[$i]{'year'}."\n";
+#   print "   Month: ".$input[$i]{'month'}."\n";
+#   print "   Day: ".$input[$i]{'day'}."\n";
+#   print "   Hours: ".$input[$i]{'hours'}."\n";
+#   print "   Minute: ".$input[$i]{'minutes'}."\n";
+#   print "   Second: ".$input[$i]{'seconds'}."\n";
+#   print "   TZD: ".$input[$i]{'tzd'}."\n";
+#   print "   Timezone: ".$input[$i]{'timeZone'}."\n" if defined $input[$i]{'timeZone'};
+#   print "   Content: ".$input[$i]{'content'}."\n";
+#   print "\n}\n";
+# }
+
+# Test to see if input can be extracted and formatted
+
+# foreach my $item(@input) {
 #   print $item;
 # }
 
