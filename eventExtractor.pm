@@ -69,7 +69,7 @@ while (<$inputFile>){
   if($_ =~ /content/){
     my ($content) = $_ =~ /"content":\h"(.*)"/g;
 
-    while($content =~ /(\d{1,2})\h(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\h(\d{1,2}:?\d?\d?)(?:pm|am)?\h-\h(\d{1,2}:?\d?\d?)(pm|am)?/gi){
+    while($content =~ /(\d{1,2})\h$monthsMatch\h(\d{1,2}:?\d?\d?)(?:pm|am)?\h-\h(\d{1,2}:?\d?\d?)(pm|am)?/gi){
       my $day = $1;
       my $month = $months{lc$2};
       my $startHour = $3;
