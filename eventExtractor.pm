@@ -6,7 +6,7 @@
 
 use strict;
 use warnings;
-use Data::Dumper; # Remember to delete this from final script.
+use Data::Dumper;
 
 
 # Start main command line checks and file validation.
@@ -164,9 +164,8 @@ sub printToOutputFile {
 
 # Debug Area
 
-print Dumper @input;
-print Dumper @datetimes;
-
+# print Dumper @input;
+# print Dumper @datetimes;
 
 # Start POD
 
@@ -174,16 +173,42 @@ print Dumper @datetimes;
 
 =head1 NAME
 
-eventextractor.pm - Perl script to extract events from emails.
+eventExtractor
 
 =head1 SYNOPSIS
 
+eventextractor [inputfile]
+
+=head1 DESCRIPTION
+
+B<eventExtractor> is a utility to extract events from a given json formatted
+file. The events are then output to an output file called 'output.json'. It is
+designed to detect all day and multiple time based events.
+
+=head1 OPTIONS
+
 =over 4
 
-= item(1)
+=item inputfile
 
-eventextractor [options] [inputfile]
+This is the file to file to be presented as input. E.g. eventExtractor.pl input.json
+
+For more information on the JSON format, visit http://json.org
 
 =back
+
+=head3 I<--BUGS>
+
+Please report bugs s3435992@student.rmit.edu.au.
+
+
+=head3 I<--AUTHOR>
+
+James Payne, School of Computer Science & Information Technology, RMIT
+
+
+=head3 I<--LICENSE>
+
+Copyright (c) 2016 by James Payne
 
 =cut
