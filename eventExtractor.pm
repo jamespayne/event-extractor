@@ -39,6 +39,7 @@ my @input = ();
 my $inputSize = 0;
 my @datetimes = ();
 my $datetimesSize = 0;
+
 my $monthsMatch = "(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)";
 
 my %months = qw(january 1 jan 1 february 2 feb 3 march 3 mar 3 april 4 apr 4 may 5 june 6 jun 6 july 7 jul 7 august 8 aug 8 september 9 sep 9 sept 9 october 10 oct 10 november 11 nov 11 december 12 dec 12);
@@ -69,9 +70,11 @@ while (<$inputFile>){
   if($_ =~ /content/){
     my ($content) = $_ =~ /"content":\h"(.*)"/g;
 
+    # Start by extracting the datetimes.
+
     while($content =~ /(\d{1,2})\h(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\h(\d{1,2}):?(\d?\d?)(?:pm|am)?\h-\h(\d{1,2}):?(\d?\d?)/gi){
-      my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
-      $year = $year+1900;
+
+      my $year = 1900 + (localtime)[5];
       my $day = $1;
       my $month = $months{lc$2};
       my $startHour = $3;
@@ -79,14 +82,14 @@ while (<$inputFile>){
       my $endHour = $5;
       my $endMinute = $6;
 
-      if(!$startMinute){
-        $startMinute = "00";
-      }
+      # Clean up the dates and add leading and trailing zeros where needed.
 
-      if(!$endMinute){
-        $endMinute = "00";
+      $day = "0".$day if length($day) < 2;
+      $month = "0".$month if length($month) < 2;
+      $startMinute = "00" if !$startMinute;
+      $endMinute = "00" if !$endMinute;
 
-      }
+      # Convert hours to 24h format.
 
       if($startHour > $endHour){
         $endHour += 12;
@@ -98,6 +101,7 @@ while (<$inputFile>){
       $datetimes[$datetimesSize]{'event'}{'timestamp'} = $input[$inputSize]{'email'}{'timestamp'};
       $datetimes[$datetimesSize]{'event'}{'timezone'} = $input[$inputSize]{'email'}{'timezone'};
       $datetimes[$datetimesSize]{'event'}{'start'} = $year."-".$month."-".$day."T".$startHour.":".$startMinute.":00.00Z";
+      $datetimes[$datetimesSize]{'event'}{'end'} = $year."-".$month."-".$day."T".$endHour.":".$endMinute.":00.00Z";
 
       $datetimesSize++;
 
@@ -118,21 +122,46 @@ while (<$inputFile>){
 
 close($inputFile);
 
-open (my $outputFile, ">output.json") || die "Error in opening the file";
-
 printToOutputFile();
 
+open (my $outFile, ">output.json") || die "Error in opening the file";
+
 sub printToOutputFile {
-  print $outputFile "[\n";
-  my $datetimeSize = @datetimes;
+
+  my $datetimeSize = @datetimes-1;
+  my $eventCount = 0;
+
+  print $outFile "[\n";
+
   for(my $i = 0; $i <= $datetimeSize; $i++){
-    print $outputFile "\t{\n\t\t";
-    print $outputFile '"start:" {'."\n\t\t\t";
+
+    print $outFile "\t{\n";
+    print $outFile "\t\t".'"start" : {'."\n";
+    print $outFile "\t\t\t".'"datetime": '.'"'.$datetimes[$i]{'event'}{'start'}.'"';
+    print $outFile ",\n" if $eventCount <= $datetimeSize;
+    print $outFile "\t\t\t".'"timezone": '.'"'.$datetimes[$i]{'event'}{'timezone'}.'"'."\n";
+    print $outFile "\t\t}";
+    print $outFile ",\n" if $eventCount <= $datetimeSize;
+    print $outFile "\t\t".'"end" : {'."\n";
+    print $outFile "\t\t\t".'"datetime": '.'"'.$datetimes[$i]{'event'}{'end'}.'"';
+    print $outFile ",\n" if $eventCount <= $datetimeSize;
+    print $outFile "\t\t\t".'"timezone": '.'"'.$datetimes[$i]{'event'}{'timezone'}.'"'."\n";
+    print $outFile "\t\t}";
+    print $outFile "\n" if $eventCount <= $datetimeSize;
+    print $outFile "\t}";
+    print $outFile "," if $eventCount <= $datetimeSize -1;
+    print $outFile "\n";
+
+    $eventCount++;
+
   }
-  print $outputFile "]\n";
+
+  print $outFile "]\n";
+  close($outFile);
+
 }
 
-close($outputFile);
+
 # Debug Area
 
 print Dumper @input;
