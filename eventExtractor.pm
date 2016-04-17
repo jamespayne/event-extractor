@@ -69,7 +69,9 @@ while (<$inputFile>){
   if($_ =~ /content/){
     my ($content) = $_ =~ /"content":\h"(.*)"/g;
 
-    while($content =~ /(\d{1,2})\h$monthsMatch\h(\d{1,2}:?\d?\d?)(?:pm|am)?\h-\h(\d{1,2}:?\d?\d?)(pm|am)?/gi){
+    while($content =~ /(\d{1,2})\h(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\h(\d{1,2}):?(\d?\d?)(?:pm|am)?\h-\h(\d{1,2}):?(\d?\d?)/gi){
+      my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
+      $year = $year+1900;
       my $day = $1;
       my $month = $months{lc$2};
       my $startHour = $3;
@@ -95,7 +97,8 @@ while (<$inputFile>){
 
       $datetimes[$datetimesSize]{'event'}{'timestamp'} = $input[$inputSize]{'email'}{'timestamp'};
       $datetimes[$datetimesSize]{'event'}{'timezone'} = $input[$inputSize]{'email'}{'timezone'};
-      $datetimes[$datetimesSize]{'event'}{'start'} = $startHour;
+      $datetimes[$datetimesSize]{'event'}{'start'} = $year."-".$month."-".$day."T".$startHour.":".$startMinute.":00.00Z";
+
       $datetimesSize++;
 
     }
@@ -117,48 +120,17 @@ close($inputFile);
 
 open (my $outputFile, ">output.json") || die "Error in opening the file";
 
-print $outputFile "[\n";
+printToOutputFile();
 
-# for(my $i = 0; $i < $inputSize; $i++){
-#
-#   my %months = qw(january 1 jan 1 february 2 feb 3 march 3 mar 3 april 4 apr 4 may 5 june 6 jun 6 july 7 jul 7 august 8 aug 8 september 9 sep 9 sept 9 october 10 oct 10 november 11 nov 11 december 12 dec 12);
-#
-#   my %hours = qw(1 13 2 14 3 15 4 16 5 17 6 18 7 19 8 20 9 21 10 22 11 23);
-#
-#   # Extract datetime dates.
-#   my $year = 2016;
-#
-#   my $count = () = $input[$i]{'email'}{'content'} =~ /(\d{1,2})\h(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\h(\d{1,2}):?(\d?\d?)(?:pm|am)?\h-\h(\d{1,2}):?(\d?\d?)/gi;
-
-
-
-  # while($input[$i]{'email'}{'content'} =~ /(\d{1,2})\h(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\h(\d{1,2}):?(\d?\d?)(?:pm|am)?\h-\h(\d{1,2}):?(\d?\d?)/gi){
-  #   my $day = $1;
-  #   my $month = $months{lc$2};
-  #   my $startHour = $3;
-  #   my $startMinute  = $4;
-  #   my $endHour = $5;
-  #   my $endMinute = $6;
-  #   if(!$startMinute){
-  #     $startMinute = "00";
-  #   }
-  #   if(!$endMinute){
-  #     $endMinute = "00";
-  #
-  #   }
-  #   if($startHour > $endHour){
-  #     $endHour += 12;
-  #   } elsif($startHour < $endHour){
-  #     $endHour += 12;
-  #     $startHour += 12;
-  #   }
-  #   print $outputFile "\t\t".'"start" : {'."\n";
-  #   print $outputFile "\t\t\t".'"dateTime": "'.$year."-".$month."-".$day."T".$startHour.":".$startMinute.'.00Z",'."\n";
-  #   print $outputFile "\t\t\t".'"timezone": "'.$input[$i]{'email'}{'timezone'}.'"'."\n";
-  #   print $outputFile "\t\t".'},'."\n";
-  # }
-# }
-print $outputFile "]\n";
+sub printToOutputFile {
+  print $outputFile "[\n";
+  my $datetimeSize = @datetimes;
+  for(my $i = 0; $i <= $datetimeSize; $i++){
+    print $outputFile "\t{\n\t\t";
+    print $outputFile '"start:" {'."\n\t\t\t";
+  }
+  print $outputFile "]\n";
+}
 
 close($outputFile);
 # Debug Area
