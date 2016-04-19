@@ -16,9 +16,14 @@ my $eventsSize = 0;
 
 sub extractEvents(){
 
+  # Main subroutine to collect the events for processing and output.
+
   open (my $inputFile, $ARGV[0]) || die "Error in opening the file";
 
-  my $monthsMatch = "(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)";
+  # These variables are regex matches to be used later on.
+
+  my $monthsMatch = '(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)';
+  my $timeStampMatch = '(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}).(\d{2,4}Z)';
 
   # These data structures are to help resolve ambiguouty of month names and end dates that roll over to the next month.
 
@@ -33,7 +38,9 @@ sub extractEvents(){
     # Exract the timestamp.
 
     if($_ =~ /sent/){
-      my ($year, $month, $day, $hours, $minutes, $seconds, $tzd) = $_ =~ /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}).(\d{2,4}Z)/;
+      my ($year, $month, $day, $hours,
+         $minutes, $seconds, $tzd) = $_ =~ /$timeStampMatch/;
+
       $input[$inputSize]{'email'}{'timestamp'} = $year.'-'.$month.'-'.$day.'T'.$hours.':'.$minutes.':'.$seconds.'.'.$tzd;
     }
 
@@ -42,17 +49,17 @@ sub extractEvents(){
     if($_ =~ /timeZone/){
       my ($timeZone) = $_ =~ /(\w*\/\w*)/;
       $input[$inputSize]{'email'}{'timezone'} = $timeZone;
-
     }
 
     # Extract the content
 
     if($_ =~ /content/){
+
       my ($content) = $_ =~ /"content":\h"(.*)"/g;
 
       # Extract the datetime events.
 
-      while($content =~ /(\d{1,2})\h(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\h(\d{1,2}):?(\d?\d?)(?:pm|am)?\h-\h(\d{1,2}):?(\d?\d?)/gi){
+      while($content =~ /(\d{1,2})\h$monthsMatch\h(\d{1,2}):?(\d?\d?)(?:pm|am)?\h-\h(\d{1,2}):?(\d?\d?)/gi){
 
         my $year = 1900 + (localtime)[5];
         my $day = $1;
@@ -62,7 +69,7 @@ sub extractEvents(){
         my $endHour = $5;
         my $endMinute = $6;
 
-        # Clean up the dates and add leading and trailing zeros where needed.
+        # Clean up the dates and add leading and trailing zeros where needed. I think the following two code blocks could be achived with Date::Parse but I didn't get time to implement it.
 
         $day = "0".$day if length($day) < 2;
         $month = "0".$month if length($month) < 2;
@@ -77,6 +84,9 @@ sub extractEvents(){
           $endHour += 12;
           $startHour += 12;
         }
+
+        # Add the data to the array of hashes.
+
         $events[$eventsSize]{'event'}{'timestamp'} = $input[$inputSize]{'email'}{'timestamp'};
         $events[$eventsSize]{'event'}{'timezone'} = $input[$inputSize]{'email'}{'timezone'};
         $events[$eventsSize]{'event'}{'start'} = $year."-".$month."-".$day."T".$startHour.":".$startMinute.":00.00Z";
@@ -93,7 +103,7 @@ sub extractEvents(){
 
       # Extract the forward date events.
 
-      while($content =~ /(\d{1,2})(?:th)?\h(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec).,?\h(\d{4})/gi){
+      while($content =~ /(\d{1,2})(?:th)?\h$monthsMatch.,?\h(\d{4})/gi){
 
           my $startDay = $1;
           my $endDay = $startDay + 1;
@@ -107,11 +117,14 @@ sub extractEvents(){
             $endDay = 1;
           }
 
-          # Add leading zeros if month is single digit. This could be done using some sort of date conversion or string formatting but working for now.
+          # Add leading zeros if month is single digit. This could be done using some sort of date conversion or string formatting but working for now. Possibly Date:: Parse as mentioned above.
 
           $month = "0".$month if length($month) < 2;
           $startDay = "0".$startDay if length($startDay) < 2;
           $endDay = "0".$endDay if length($endDay) < 2;
+
+          # Add the data to the array of hashes.
+
           $events[$eventsSize]{'event'}{'timestamp'} = $input[$inputSize]{'email'}{'timestamp'};
           $events[$eventsSize]{'event'}{'timezone'} = $input[$inputSize]{'email'}{'timezone'};
           $events[$eventsSize]{'event'}{'start'} = $year."-".$month."-".$startDay;
@@ -120,9 +133,10 @@ sub extractEvents(){
           $eventsSize++;
       }
 
-      # Extract the reverse day events. This could be refined and catered for in the while loop above.
+      # Extract the reverse day events. This could be refined and catered for in the while loop above. Not very DRY but, it works for now.
 
-      while($content =~ /(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\.?\h?(\d{1,2})(?:th)?,?\h(\d{4})/gi){
+      while($content =~ /$monthsMatch\.?\h?(\d{1,2})(?:th)?,?\h(\d{4})/gi){
+
           my $startDay = $2;
           my $endDay = $startDay + 1;
           my $month = $months{lc$1};
@@ -134,6 +148,9 @@ sub extractEvents(){
           $month = "0".$month if length($month) < 2;
           $startDay = "0".$startDay if length($startDay) < 2;
           $endDay = "0".$endDay if length($endDay) < 2;
+
+          # Add the data to the array of hashes.
+
           $events[$eventsSize]{'event'}{'timestamp'} = $input[$inputSize]{'email'}{'timestamp'};
           $events[$eventsSize]{'event'}{'timezone'} = $input[$inputSize]{'email'}{'timezone'};
           $events[$eventsSize]{'event'}{'start'} = $year."-".$month."-".$startDay;
@@ -149,6 +166,9 @@ sub extractEvents(){
 }
 
 sub printToOutputFile {
+
+  # Write all the data to the outputfile.
+
   open (my $outFile, ">events.json") || die "Error in opening the file";
   my $eventsize = @events-1;
   my $eventCount = 0;
@@ -185,9 +205,13 @@ sub printToOutputFile {
   print "\nWe found:\n\n";
   print "$dtEventCount events with a datetime format.\n";
   print "$dEventCount events with a date format.\n\n";
-  print "Please see the file output.json for full results.\n\n";
+  print "Please see the file events.json for full results.\n\n";
   print "Thank you for using the eventExtractor!\n";
+
 }
+
+# This needs to be added for the module to return true after being called in another script.
+
 1;
 
 # Debug Area
