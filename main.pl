@@ -20,11 +20,16 @@ if (!$ARGV[0] || @ARGV > 1){
 
 if ($ARGV[0] =~ /\.json$/i){
   print "Valid .json file submitted. Thank you.\n";
+
+  # Call the main subroutine in eventExtractor.pm perl module.
+
+  eventExtractor::extractEvents();
+
+  # Auto generate a git log for submission just incase I have any late night programming breakthrough and forget to generate this file. Commment out this line for performance testing.
+
+  `git log > commitlog.txt`;
+
 } else {
   print "That doesn't appear to be a valid .json file.\n";
   exit;
 }
-
-#call the main subroutine in eventExtractor.pm perl module.
-
-eventExtractor::extractEvents();
