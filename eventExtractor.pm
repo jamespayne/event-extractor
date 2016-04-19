@@ -210,7 +210,7 @@ sub printToOutputFile {
 
 }
 
-# This needs to be added for the module to return true after being called in another script.
+# This needs to be added for the module to return true after being called in another script. Do not delete it!
 
 1;
 
