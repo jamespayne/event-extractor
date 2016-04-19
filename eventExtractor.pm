@@ -7,199 +7,154 @@
 use strict;
 use warnings;
 use Data::Dumper;
-
-
-# Start main command line checks and file validation.
-
-# Check to see if the required input file has been supplied and there are no
-# more than 1 arguments for input.
-
-if (!$ARGV[0] || @ARGV > 1){
-  print "\nYou didn't supply an input file or you have supplied too many\n";
-  print "arguments. Please read the documentation!\n\n";
-  exit;
-}
-
-# Check the file name argument has a .json extension.
-
-if ($ARGV[0] =~ /\.json$/i){
-  print "Valid .json file submitted. Thank you.\n";
-} else {
-  print "That doesn't appear to be a valid .json file.\n";
-  exit;
-}
-
-# Create a new filehandler and open the file given as input.
-
-open (my $inputFile, $ARGV[0]) || die "Error in opening the file";
-
-# Set up the global variables, arrays and hashes for later use.
+package eventExtractor;
 
 my @input = ();
 my $inputSize = 0;
 my @events = ();
 my $eventsSize = 0;
 
-my $monthsMatch = "(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)";
+sub extractEvents(){
 
-my %months = qw(january 1 jan 1 february 2 feb 2 march 3 mar 3 april 4 apr 4 may 5 june 6 jun 6 july 7 jul 7 august 8 aug 8 september 9 sep 9 sept 9 october 10 oct 10 november 11 nov 11 december 12 dec 12);
+  open (my $inputFile, $ARGV[0]) || die "Error in opening the file";
 
-my %mdays = qw(1 31 2 28 3 31 4 30 5 31 6 30 7 31 8 31 9 30 10 31 11 30 12 31);
+  my $monthsMatch = "(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)";
 
-# Extract the data from the input file and push it into an array of hashes for further analysis and processing.
+  # These data structures are to help resolve ambiguouty of month names and end dates that roll over to the next month.
 
-while (<$inputFile>){
+  my %months = qw(january 1 jan 1 february 2 feb 2 march 3 mar 3 april 4 apr 4 may 5 june 6 jun 6 july 7 jul 7 august 8 aug 8 september 9 sep 9 sept 9 october 10 oct 10 november 11 nov 11 december 12 dec 12);
 
-  #  Need to to check this regex for format. Tzd seems to be fixed but may not pick up.
+  my %mdays = qw(1 31 2 28 3 31 4 30 5 31 6 30 7 31 8 31 9 30 10 31 11 30 12 31);
 
-  # Exract the timestamp.
+  # Extract the data from the input file and push it into an array of hashes for further analysis and processing.
 
-  if($_ =~ /sent/){
-    my ($year, $month, $day, $hours, $minutes, $seconds, $tzd) = $_ =~ /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}).(\d{2,4}Z)/;
-    $input[$inputSize]{'email'}{'timestamp'} = $year.'-'.$month.'-'.$day.'T'.$hours.':'.$minutes.':'.$seconds.'.'.$tzd;
-  }
+  while (<$inputFile>){
 
-  # Extract the time zone
+    # Exract the timestamp.
 
-  if($_ =~ /timeZone/){
-    my ($timeZone) = $_ =~ /(\w*\/\w*)/;
-    $input[$inputSize]{'email'}{'timezone'} = $timeZone;
+    if($_ =~ /sent/){
+      my ($year, $month, $day, $hours, $minutes, $seconds, $tzd) = $_ =~ /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}).(\d{2,4}Z)/;
+      $input[$inputSize]{'email'}{'timestamp'} = $year.'-'.$month.'-'.$day.'T'.$hours.':'.$minutes.':'.$seconds.'.'.$tzd;
+    }
 
-  }
+    # Extract the time zone
 
-  # Extract the content
+    if($_ =~ /timeZone/){
+      my ($timeZone) = $_ =~ /(\w*\/\w*)/;
+      $input[$inputSize]{'email'}{'timezone'} = $timeZone;
 
-  if($_ =~ /content/){
-    my ($content) = $_ =~ /"content":\h"(.*)"/g;
+    }
 
-    # Extract the datetime events.
+    # Extract the content
 
-    while($content =~ /(\d{1,2})\h(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\h(\d{1,2}):?(\d?\d?)(?:pm|am)?\h-\h(\d{1,2}):?(\d?\d?)/gi){
+    if($_ =~ /content/){
+      my ($content) = $_ =~ /"content":\h"(.*)"/g;
 
-      my $year = 1900 + (localtime)[5];
-      my $day = $1;
-      my $month = $months{lc$2};
-      my $startHour = $3;
-      my $startMinute  = $4;
-      my $endHour = $5;
-      my $endMinute = $6;
+      # Extract the datetime events.
 
-      # Clean up the dates and add leading and trailing zeros where needed.
+      while($content =~ /(\d{1,2})\h(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\h(\d{1,2}):?(\d?\d?)(?:pm|am)?\h-\h(\d{1,2}):?(\d?\d?)/gi){
 
-      $day = "0".$day if length($day) < 2;
-      $month = "0".$month if length($month) < 2;
-      $startMinute = "00" if !$startMinute;
-      $endMinute = "00" if !$endMinute;
+        my $year = 1900 + (localtime)[5];
+        my $day = $1;
+        my $month = $months{lc$2};
+        my $startHour = $3;
+        my $startMinute  = $4;
+        my $endHour = $5;
+        my $endMinute = $6;
 
-      # Convert hours to 24h format.
+        # Clean up the dates and add leading and trailing zeros where needed.
 
-      if($startHour > $endHour){
-        $endHour += 12;
-      } elsif($startHour < $endHour){
-        $endHour += 12;
-        $startHour += 12;
+        $day = "0".$day if length($day) < 2;
+        $month = "0".$month if length($month) < 2;
+        $startMinute = "00" if !$startMinute;
+        $endMinute = "00" if !$endMinute;
+
+        # Convert hours to 24h format.
+
+        if($startHour > $endHour){
+          $endHour += 12;
+        } elsif($startHour < $endHour){
+          $endHour += 12;
+          $startHour += 12;
+        }
+        $events[$eventsSize]{'event'}{'timestamp'} = $input[$inputSize]{'email'}{'timestamp'};
+        $events[$eventsSize]{'event'}{'timezone'} = $input[$inputSize]{'email'}{'timezone'};
+        $events[$eventsSize]{'event'}{'start'} = $year."-".$month."-".$day."T".$startHour.":".$startMinute.":00.00Z";
+        $events[$eventsSize]{'event'}{'end'} = $year."-".$month."-".$day."T".$endHour.":".$endMinute.":00.00Z";
+        $events[$eventsSize]{'event'}{'type'} = 'datetime';
+        $eventsSize++;
       }
 
-      $events[$eventsSize]{'event'}{'timestamp'} = $input[$inputSize]{'email'}{'timestamp'};
-      $events[$eventsSize]{'event'}{'timezone'} = $input[$inputSize]{'email'}{'timezone'};
-      $events[$eventsSize]{'event'}{'start'} = $year."-".$month."-".$day."T".$startHour.":".$startMinute.":00.00Z";
-      $events[$eventsSize]{'event'}{'end'} = $year."-".$month."-".$day."T".$endHour.":".$endMinute.":00.00Z";
-      $events[$eventsSize]{'event'}{'type'} = 'datetime';
+      # Set the timezone as Melbourne if a timezone is not found.
 
-      $eventsSize++;
+      if(!defined $input[$inputSize]{'email'}{'timezone'}){
+        $input[$inputSize]{'email'}{'timezone'} = "Australia/Melbourne";
+      }
 
+      # Extract the forward date events.
+
+      while($content =~ /(\d{1,2})(?:th)?\h(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec).,?\h(\d{4})/gi){
+
+          my $startDay = $1;
+          my $endDay = $startDay + 1;
+          my $month = $months{lc$2};
+          my $year = $3;
+
+          # Compensate for days rolling over into next month. This needs some further refinement to compensate for leap years. Need some sort of algorithm to check whether feb is in a leap year. Also, it may be that an event starts on 31st December the end date would be 1 Jan the next year.
+
+          if($endDay > $mdays{$month}){
+            $month += 1;
+            $endDay = 1;
+          }
+
+          # Add leading zeros if month is single digit. This could be done using some sort of date conversion or string formatting but working for now.
+
+          $month = "0".$month if length($month) < 2;
+          $startDay = "0".$startDay if length($startDay) < 2;
+          $endDay = "0".$endDay if length($endDay) < 2;
+          $events[$eventsSize]{'event'}{'timestamp'} = $input[$inputSize]{'email'}{'timestamp'};
+          $events[$eventsSize]{'event'}{'timezone'} = $input[$inputSize]{'email'}{'timezone'};
+          $events[$eventsSize]{'event'}{'start'} = $year."-".$month."-".$startDay;
+          $events[$eventsSize]{'event'}{'end'} = $year."-".$month."-".$endDay;
+          $events[$eventsSize]{'event'}{'type'} = 'date';
+          $eventsSize++;
+      }
+
+      # Extract the reverse day events. This could be refined and catered for in the while loop above.
+
+      while($content =~ /(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\.?\h?(\d{1,2})(?:th)?,?\h(\d{4})/gi){
+          my $startDay = $2;
+          my $endDay = $startDay + 1;
+          my $month = $months{lc$1};
+          my $year = $3;
+          if($endDay > $mdays{$month}){
+            $month += 1;
+            $endDay = 1;
+          }
+          $month = "0".$month if length($month) < 2;
+          $startDay = "0".$startDay if length($startDay) < 2;
+          $endDay = "0".$endDay if length($endDay) < 2;
+          $events[$eventsSize]{'event'}{'timestamp'} = $input[$inputSize]{'email'}{'timestamp'};
+          $events[$eventsSize]{'event'}{'timezone'} = $input[$inputSize]{'email'}{'timezone'};
+          $events[$eventsSize]{'event'}{'start'} = $year."-".$month."-".$startDay;
+          $events[$eventsSize]{'event'}{'end'} = $year."-".$month."-".$endDay;
+          $events[$eventsSize]{'event'}{'type'} = 'date';
+          $eventsSize++;
+      }
+      $inputSize++;
     }
-
-    # Set the timezone as Melbourne if a timezone is not found.
-
-    if(!defined $input[$inputSize]{'email'}{'timezone'}){
-      $input[$inputSize]{'email'}{'timezone'} = "Australia/Melbourne";
-    }
-
-    # Extract the forward date events.
-
-    while($content =~ /(\d{1,2})(?:th)?\h(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec).,?\h(\d{4})/gi){
-
-        my $startDay = $1;
-
-        my $endDay = $startDay + 1;
-        my $month = $months{lc$2};
-
-        my $year = $3;
-
-        # Compensate for days rolling over into next month. This needs some further refinement to compensate for leap years. Need some sort of algorithm to check whether feb is in a leap year. Also, it may be that an event starts on 31st December the end date would be 1 Jan the next year.
-
-        if($endDay > $mdays{$month}){
-          $month += 1;
-          $endDay = 1;
-        }
-
-        # Add leading zeros if month is single digit. This could be done using some sort of date conversion or string formatting but working for now.
-
-        $month = "0".$month if length($month) < 2;
-        $startDay = "0".$startDay if length($startDay) < 2;
-        $endDay = "0".$endDay if length($endDay) < 2;
-
-        $events[$eventsSize]{'event'}{'timestamp'} = $input[$inputSize]{'email'}{'timestamp'};
-        $events[$eventsSize]{'event'}{'timezone'} = $input[$inputSize]{'email'}{'timezone'};
-        $events[$eventsSize]{'event'}{'start'} = $year."-".$month."-".$startDay;
-        $events[$eventsSize]{'event'}{'end'} = $year."-".$month."-".$endDay;
-        $events[$eventsSize]{'event'}{'type'} = 'date';
-
-        $eventsSize++;
-    }
-
-    # Extract the reverse day events.
-
-    while($content =~ /(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\.?\h?(\d{1,2})(?:th)?,?\h(\d{4})/gi){
-
-        my $startDay = $2;
-
-        my $endDay = $startDay + 1;
-        my $month = $months{lc$1};
-
-        my $year = $3;
-
-        if($endDay > $mdays{$month}){
-          $month += 1;
-          $endDay = 1;
-        }
-
-        $month = "0".$month if length($month) < 2;
-        $startDay = "0".$startDay if length($startDay) < 2;
-        $endDay = "0".$endDay if length($endDay) < 2;
-
-        $events[$eventsSize]{'event'}{'timestamp'} = $input[$inputSize]{'email'}{'timestamp'};
-        $events[$eventsSize]{'event'}{'timezone'} = $input[$inputSize]{'email'}{'timezone'};
-        $events[$eventsSize]{'event'}{'start'} = $year."-".$month."-".$startDay;
-        $events[$eventsSize]{'event'}{'end'} = $year."-".$month."-".$endDay;
-        $events[$eventsSize]{'event'}{'type'} = 'date';
-
-        $eventsSize++;
-    }
-
-    $inputSize++;
-
   }
+  close($inputFile);
+  printToOutputFile();
 }
 
-# Close the input file.
-
-close($inputFile);
-
-printToOutputFile();
-
 sub printToOutputFile {
-
-  open (my $outFile, ">output.json") || die "Error in opening the file";
-
+  open (my $outFile, ">events.json") || die "Error in opening the file";
   my $eventsize = @events-1;
   my $eventCount = 0;
   my $dtEventCount = 0;
   my $dEventCount = 0;
-
   for(my $i = 0; $i <= $eventsize; $i++){
-
     print $outFile "\t{\n";
     print $outFile "\t\t".'"start" : {'."\n";
     if($events[$i]{'event'}{'type'} eq 'datetime'){
@@ -223,21 +178,17 @@ sub printToOutputFile {
     print $outFile "\t}";
     print $outFile "," if $eventCount <= $eventsize -1;
     print $outFile "\n";
-
     $eventCount++;
-
   }
-
   print $outFile "]\n";
   close($outFile);
-
   print "\nWe found:\n\n";
   print "$dtEventCount events with a datetime format.\n";
   print "$dEventCount events with a date format.\n\n";
   print "Please see the file output.json for full results.\n\n";
   print "Thank you for using the eventExtractor!\n";
 }
-
+1;
 
 # Debug Area
 
