@@ -76,7 +76,7 @@ sub extractEvents(){
         $startMinute = "00" if !$startMinute;
         $endMinute = "00" if !$endMinute;
 
-        # Convert hours to 24h format.
+        # Convert hours to 24h format. This is a bit iffy and sure there is a more accurate way to do it.
 
         if($startHour > $endHour){
           $endHour += 12;
@@ -110,7 +110,7 @@ sub extractEvents(){
           my $month = $months{lc$2};
           my $year = $3;
 
-          # Compensate for days rolling over into next month. This needs some further refinement to compensate for leap years. Need some sort of algorithm to check whether feb is in a leap year. Also, it may be that an event starts on 31st December the end date would be 1 Jan the next year.
+          # Compensate for days rolling over into next month. This needs some further refinement to compensate for leap years. Need some sort of algorithm to check whether feb is in a leap year. Script only caters for a 28 day Feb ATM. Also, it may be that an event starts on 31st December the end date would be 1 Jan the next year.
 
           if($endDay > $mdays{$month}){
             $month += 1;
@@ -158,6 +158,26 @@ sub extractEvents(){
           $events[$eventsSize]{'event'}{'type'} = 'date';
           $eventsSize++;
       }
+
+      # Extract the natural language events. These two code blocks have been commented out as they have not been fully implemented. You will see that I have made an attempt to detect these type of events.
+
+      # while ($content =~ /(next\hweek).*(monday|mon|tuesday|tue|wednesday|wed|thursday|thurs|thur|friday|fri|saturday|sat|sunday|sun).?\h(\d{1,2}:?\d{1,2}?)\h(am|pm)/gi) {
+      #   print "$1\n";
+      #   print "$2\n";
+      #   print "$3\n";
+      #   print "$4\n";
+      #   my $datesent = $input[$inputSize]{'email'}{'timestamp'};
+      #   print $datesent."\n";
+      # }
+      #
+      # while ($content =~ /(tomorrow)\h(\d{1,2}:?\d?\d?)\h?(am|pm)?/gi) {
+      #   print "$1\n";
+      #   print "$2\n";
+      #   print "$3\n";
+      # }
+
+      # Finally, incrment the size of the array to capture further events.
+      
       $inputSize++;
     }
   }
@@ -210,7 +230,7 @@ sub printToOutputFile {
 
 }
 
-# This needs to be added for the module to return true after being called in another script. Do not delete it!
+# The 1; below needs to be added for the module to return true after being called in another script. Just DO NOT DELETE IT! Otherwise, eventextractor.pm == broken. Thank you.
 
 1;
 
