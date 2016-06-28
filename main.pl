@@ -25,10 +25,6 @@ if ($ARGV[0] =~ /\.json$/i){
 
   eventExtractor::extractEvents();
 
-  # Auto generate a git log for submission just incase I have any late night programming breakthrough and forget to generate this file. Commment out this line for performance testing.
-
-  `git log > commitlog.txt`;
-
 } else {
   print "That doesn't appear to be a valid .json file.\n";
   exit;
