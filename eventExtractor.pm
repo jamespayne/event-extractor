@@ -22,16 +22,24 @@ sub extractEvents(){
 
   # These variables are regex matches to be used later on.
 
-  my $monthsMatch = '(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)';
+  my $monthsMatch = '(january|jan|february|feb|march|mar|april|apr|may|june|jun
+                    |july|jul|august|aug|september|sept|sep|october|oct|november
+                    |nov|december|dec)';
+
   my $timeStampMatch = '(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}).(\d{2,4}Z)';
 
-  # These data structures are to help resolve ambiguouty of month names and end dates that roll over to the next month.
+  # These data structures are to help resolve ambiguouty of month names and end
+  # dates that roll over to the next month.
 
-  my %months = qw(january 1 jan 1 february 2 feb 2 march 3 mar 3 april 4 apr 4 may 5 june 6 jun 6 july 7 jul 7 august 8 aug 8 september 9 sep 9 sept 9 october 10 oct 10 november 11 nov 11 december 12 dec 12);
+  my %months = qw(january 1 jan 1 february 2 feb 2 march 3 mar 3 april 4 apr 4
+                 may 5 june 6 jun 6 july 7 jul 7 august 8 aug 8 september 9
+                 sep 9 sept 9 october 10 oct 10 november 11 nov 11 december
+                 12 dec 12);
 
   my %mdays = qw(1 31 2 28 3 31 4 30 5 31 6 30 7 31 8 31 9 30 10 31 11 30 12 31);
 
-  # Extract the data from the input file and push it into an array of hashes for further analysis and processing.
+  # Extract the data from the input file and push it into an array of hashes
+  # for further analysis and processing.
 
   while (<$inputFile>){
 
@@ -40,7 +48,6 @@ sub extractEvents(){
     if($_ =~ /sent/){
       my ($year, $month, $day, $hours,
          $minutes, $seconds, $tzd) = $_ =~ /$timeStampMatch/;
-
       $input[$inputSize]{'email'}{'timestamp'} = $year.'-'.$month.'-'.$day.'T'.$hours.':'.$minutes.':'.$seconds.'.'.$tzd;
     }
 
@@ -69,14 +76,17 @@ sub extractEvents(){
         my $endHour = $5;
         my $endMinute = $6;
 
-        # Clean up the dates and add leading and trailing zeros where needed. I think the following two code blocks could be achived with Date::Parse but I didn't get time to implement it.
+        # Clean up the dates and add leading and trailing zeros where needed.
+        # I think the following two code blocks could be achived with Date::Parse
+        # but I didn't get time to implement it.
 
         $day = "0".$day if length($day) < 2;
         $month = "0".$month if length($month) < 2;
         $startMinute = "00" if !$startMinute;
         $endMinute = "00" if !$endMinute;
 
-        # Convert hours to 24h format. This is a bit iffy and sure there is a more accurate way to do it.
+        # Convert hours to 24h format. This is a bit iffy and sure there is a
+        # more accurate way to do it.
 
         if($startHour > $endHour){
           $endHour += 12;
@@ -110,14 +120,17 @@ sub extractEvents(){
           my $month = $months{lc$2};
           my $year = $3;
 
-          # Compensate for days rolling over into next month. This needs some further refinement to compensate for leap years. Need some sort of algorithm to check whether feb is in a leap year. Script only caters for a 28 day Feb ATM. Also, it may be that an event starts on 31st December the end date would be 1 Jan the next year.
+          # Compensate for days rolling over into next month. This needs some
+
 
           if($endDay > $mdays{$month}){
             $month += 1;
             $endDay = 1;
           }
 
-          # Add leading zeros if month is single digit. This could be done using some sort of date conversion or string formatting but working for now. Possibly Date:: Parse as mentioned above.
+          # Add leading zeros if month is single digit. This could be done using
+          # some sort of date conversion or string formatting but working for
+          # now. Possibly Date:: Parse as mentioned above.
 
           $month = "0".$month if length($month) < 2;
           $startDay = "0".$startDay if length($startDay) < 2;
@@ -133,7 +146,8 @@ sub extractEvents(){
           $eventsSize++;
       }
 
-      # Extract the reverse day events. This could be refined and catered for in the while loop above. Not very DRY but, it works for now.
+      # Extract the reverse day events. This could be refined and catered for in
+      # the while loop above. Not very DRY but, it works for now.
 
       while($content =~ /$monthsMatch\.?\h?(\d{1,2})(?:th)?,?\h(\d{4})/gi){
 
@@ -159,25 +173,30 @@ sub extractEvents(){
           $eventsSize++;
       }
 
-      # Extract the natural language events. These two code blocks have been commented out as they have not been fully implemented. You will see that I have made an attempt to detect these type of events.
+      # Extract the natural language events. These two code blocks have been
+      # commented out as they have not been fully implemented. You will see that
+      # I have made an attempt to detect these type of events.
 
-      # while ($content =~ /(next\hweek).*(monday|mon|tuesday|tue|wednesday|wed|thursday|thurs|thur|friday|fri|saturday|sat|sunday|sun).?\h(\d{1,2}:?\d{1,2}?)\h(am|pm)/gi) {
-      #   print "$1\n";
-      #   print "$2\n";
-      #   print "$3\n";
-      #   print "$4\n";
-      #   my $datesent = $input[$inputSize]{'email'}{'timestamp'};
-      #   print $datesent."\n";
-      # }
-      #
-      # while ($content =~ /(tomorrow)\h(\d{1,2}:?\d?\d?)\h?(am|pm)?/gi) {
-      #   print "$1\n";
-      #   print "$2\n";
-      #   print "$3\n";
-      # }
+      while ($content =~ /(next\hweek).*(monday|mon|tuesday|tue|wednesday|wed|thursday|thurs|thur|friday|fri|saturday|sat|sunday|sun).?\h(\d{1,2}:?\d{1,2}?)\h(am|pm)/gi) {
+        my $dateSent = $input[$inputSize]{'email'}{'timestamp'};
+        # print "$1\n";
+        # print "$2\n";
+        # print "$3\n";
+        # print "$4\n";
+        # print $dateSent."\n";
+        # print localtime($dateSent)."\n";
+      }
+
+      while ($content =~ /(tomorrow)\h(\d{1,2}:?\d?\d?)\h?(am|pm)?/gi) {
+        # my $dateSent = $input[$inputSize]{'email'}{'timestamp'};
+        # print "$1\n";
+        # print "$2\n";
+        # print "$3\n";
+        # print $datesent."\n";
+      }
 
       # Finally, incrment the size of the array to capture further events.
-      
+
       $inputSize++;
     }
   }
@@ -194,6 +213,7 @@ sub printToOutputFile {
   my $eventCount = 0;
   my $dtEventCount = 0;
   my $dEventCount = 0;
+  print $outFile "[\n";
   for(my $i = 0; $i <= $eventsize; $i++){
     print $outFile "\t{\n";
     print $outFile "\t\t".'"start" : {'."\n";
@@ -230,7 +250,8 @@ sub printToOutputFile {
 
 }
 
-# The 1; below needs to be added for the module to return true after being called in another script. Just DO NOT DELETE IT! Otherwise, eventextractor.pm == broken. Thank you.
+# The 1; below needs to be added for the module to return true after being
+# called in another script. DO NOT DELETE IT!
 
 1;
 
@@ -263,7 +284,8 @@ designed to detect all day and multiple time based events.
 
 =item inputfile
 
-This is the file to file to be presented as input. E.g. eventExtractor.pl input.json
+This is the file to file to be presented as input.
+E.g. eventExtractor.pl input.json
 
 For more information on the JSON format, visit http://json.org
 
